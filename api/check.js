@@ -1,7 +1,7 @@
 // api/check.js — Vercel Serverless Function
 // Consulta Google Web Risk + IPQualityScore y devuelve un resultado unificado
 
-export default async function handler(req, res) {
+module.exports = async function handler(req, res) {
   // Solo aceptamos POST
   if (req.method !== 'POST') {
     return res.status(405).json({ error: 'Método no permitido' });
