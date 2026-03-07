@@ -1,198 +1,597 @@
-// api/check.js — Vercel Serverless Function
-// Consulta Google Web Risk + IPQualityScore y devuelve un resultado unificado
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>SiteCheck — ¿Es confiable este sitio?</title>
+<link href="https://fonts.googleapis.com/css2?family=Fraunces:ital,opsz,wght@0,9..144,300;0,9..144,600;1,9..144,300&family=DM+Sans:wght@300;400;500&display=swap" rel="stylesheet">
+<style>
+  *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
 
-module.exports = async function handler(req, res) {
-  // Solo aceptamos POST
-  if (req.method !== 'POST') {
-    return res.status(405).json({ error: 'Método no permitido' });
+  :root {
+    --bg: #fafaf8;
+    --surface: #ffffff;
+    --border: #e8e4de;
+    --border-soft: #f0ece6;
+    --text: #1a1614;
+    --muted: #9c9288;
+    --accent: #f26419;
+    --accent-light: #fff3ec;
+    --accent2: #e8530a;
+    --green: #1a9e5c;
+    --yellow: #d4860a;
+    --red: #d63b2f;
+    --gray: #8a8a8a;
   }
 
-  const { url } = req.body;
-
-  if (!url || typeof url !== 'string') {
-    return res.status(400).json({ error: 'URL inválida o faltante' });
+  body {
+    background: var(--bg);
+    color: var(--text);
+    font-family: 'DM Sans', sans-serif;
+    min-height: 100vh;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    padding: 0 1rem;
+    overflow-x: hidden;
   }
 
-  // Limpiamos y validamos la URL
-  let cleanUrl;
-  try {
-    cleanUrl = new URL(url.startsWith('http') ? url : 'https://' + url);
-  } catch {
-    return res.status(400).json({ error: 'No es una URL válida' });
+  /* Background texture */
+  body::before {
+    content: '';
+    position: fixed;
+    top: -150px;
+    left: 50%;
+    transform: translateX(-50%);
+    width: 700px;
+    height: 500px;
+    background: radial-gradient(ellipse, rgba(242, 100, 25, 0.07) 0%, transparent 70%);
+    pointer-events: none;
+    z-index: 0;
   }
 
-  const domain = cleanUrl.hostname.replace(/^www\./, '');
-  const fullUrl = cleanUrl.href;
+  header {
+    margin-top: 3.5rem;
+    text-align: center;
+    position: relative;
+    z-index: 1;
+  }
 
-  // Leemos las API keys desde variables de entorno (configuradas en Vercel)
-  const WEB_RISK_KEY = process.env.GOOGLE_WEB_RISK_KEY;
-  const IPQS_KEY     = process.env.IPQUALITYSCORE_KEY;
+  .logo {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.6rem;
+    margin-bottom: 1.4rem;
+  }
 
-  // Ejecutamos ambas consultas en paralelo para mayor velocidad
-  const [webRiskResult, ipqsResult] = await Promise.allSettled([
-    checkWebRisk(fullUrl, WEB_RISK_KEY),
-    checkIPQS(fullUrl, IPQS_KEY),
-  ]);
+  .logo-icon {
+    width: 38px;
+    height: 38px;
+    background: linear-gradient(135deg, var(--accent), #ff8c42);
+    border-radius: 10px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 1.1rem;
+  }
 
-  const webRisk = webRiskResult.status === 'fulfilled' ? webRiskResult.value : null;
-  const ipqs    = ipqsResult.status    === 'fulfilled' ? ipqsResult.value    : null;
+  .logo-text {
+    font-family: 'Fraunces', serif;
+    font-weight: 600;
+    font-size: 1.3rem;
+    letter-spacing: -0.01em;
+  }
 
-  // ── Construimos el resultado unificado ──────────────────────────────────────
-  const checks = buildChecks(webRisk, ipqs, cleanUrl);
-  const verdict = calcVerdict(checks);
-  const message = VERDICT_MESSAGES[verdict];
+  h1 {
+    font-family: 'Fraunces', serif;
+    font-weight: 300;
+    font-size: clamp(2.2rem, 5.5vw, 3.6rem);
+    letter-spacing: -0.01em;
+    line-height: 1.25;
+    margin-bottom: 1rem;
+    color: #1a1614;
+  }
 
-  return res.status(200).json({
-    domain,
-    verdict,      // 'green' | 'yellow' | 'red' | 'gray'
-    title:   message.title,
-    desc:    message.desc,
-    checks,
-    attribution: {
-      webRisk: 'Advisory provided by Google (Web Risk)',
-      ipqs:    'URL analysis by IPQualityScore',
-    },
+  h1 em {
+    font-style: italic;
+    font-weight: 300;
+  }
+
+  h1 span {
+    background: linear-gradient(90deg, var(--accent), #ff8c42);
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
+    background-clip: text;
+    font-style: italic;
+    font-weight: 300;
+  }
+
+  .subtitle {
+    color: var(--muted);
+    font-size: 1rem;
+    font-weight: 400;
+    max-width: 400px;
+    margin: 0 auto;
+    line-height: 1.7;
+  }
+
+  /* Search box */
+  .search-card {
+    position: relative;
+    z-index: 1;
+    margin-top: 2.5rem;
+    width: 100%;
+    max-width: 620px;
+    background: var(--surface);
+    border: 1.5px solid var(--border);
+    border-radius: 18px;
+    padding: 1.6rem;
+    box-shadow: 0 4px 24px rgba(0,0,0,0.06), 0 1px 4px rgba(0,0,0,0.04);
+  }
+
+  .input-wrap {
+    display: flex;
+    gap: 0.75rem;
+    align-items: center;
+  }
+
+  .url-input {
+    flex: 1;
+    background: var(--bg);
+    border: 1.5px solid var(--border);
+    border-radius: 10px;
+    padding: 0.85rem 1.1rem;
+    color: var(--text);
+    font-family: 'DM Sans', sans-serif;
+    font-size: 0.95rem;
+    outline: none;
+    transition: border-color 0.2s, box-shadow 0.2s;
+  }
+
+  .url-input::placeholder { color: var(--muted); }
+  .url-input:focus { border-color: var(--accent); box-shadow: 0 0 0 3px rgba(242,100,25,0.1); }
+
+  .check-btn {
+    background: linear-gradient(135deg, var(--accent), var(--accent2));
+    border: none;
+    border-radius: 10px;
+    padding: 0.85rem 1.4rem;
+    color: #fff;
+    font-family: 'DM Sans', sans-serif;
+    font-weight: 700;
+    font-size: 0.9rem;
+    cursor: pointer;
+    white-space: nowrap;
+    transition: opacity 0.2s, transform 0.15s, box-shadow 0.2s;
+    letter-spacing: 0.01em;
+    box-shadow: 0 4px 14px rgba(242,100,25,0.3);
+  }
+
+  .check-btn:hover { opacity: 0.92; transform: translateY(-1px); box-shadow: 0 6px 18px rgba(242,100,25,0.35); }
+  .check-btn:active { transform: translateY(0); }
+  .check-btn:disabled { opacity: 0.4; cursor: not-allowed; transform: none; box-shadow: none; }
+
+  .hint {
+    margin-top: 0.75rem;
+    font-size: 0.78rem;
+    color: var(--muted);
+  }
+
+  /* Result panel */
+  .result-panel {
+    position: relative;
+    z-index: 1;
+    margin-top: 1.5rem;
+    width: 100%;
+    max-width: 620px;
+    display: none;
+    animation: fadeUp 0.35s ease;
+  }
+
+  @keyframes fadeUp {
+    from { opacity: 0; transform: translateY(16px); }
+    to   { opacity: 1; transform: translateY(0); }
+  }
+
+  .result-main {
+    border-radius: 18px;
+    border: 1.5px solid transparent;
+    padding: 1.6rem;
+    margin-bottom: 1rem;
+    transition: all 0.4s ease;
+    box-shadow: 0 2px 12px rgba(0,0,0,0.05);
+  }
+
+  .result-main.green  { background: #f0fdf6; border-color: #a7f0c8; }
+  .result-main.yellow { background: #fffbeb; border-color: #fcd97a; }
+  .result-main.red    { background: #fff5f5; border-color: #fca5a5; }
+  .result-main.gray   { background: #f9f9f9; border-color: #d1d1d1; }
+
+  .verdict-row {
+    display: flex;
+    align-items: center;
+    gap: 1rem;
+    margin-bottom: 1rem;
+  }
+
+  .traffic-light {
+    width: 52px;
+    height: 52px;
+    border-radius: 50%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 1.5rem;
+    flex-shrink: 0;
+    position: relative;
+  }
+
+  .traffic-light.green  { background: #dcfce7; box-shadow: 0 0 20px rgba(26,158,92,0.2); }
+  .traffic-light.yellow { background: #fef3c7; box-shadow: 0 0 20px rgba(212,134,10,0.2); }
+  .traffic-light.red    { background: #fee2e2; box-shadow: 0 0 20px rgba(214,59,47,0.2); }
+  .traffic-light.gray   { background: #f3f4f6; box-shadow: 0 0 20px rgba(138,138,138,0.15); }
+
+  .verdict-text h2 {
+    font-family: 'DM Sans', sans-serif;
+    font-weight: 700;
+    font-size: 1.15rem;
+    margin-bottom: 0.2rem;
+  }
+
+  .verdict-text .url-display {
+    font-size: 0.8rem;
+    color: var(--muted);
+    word-break: break-all;
+  }
+
+  .verdict-desc {
+    font-size: 0.92rem;
+    line-height: 1.65;
+    color: #4a4540;
+    opacity: 1;
+  }
+
+  /* Checks grid */
+  .checks-grid {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 0.6rem;
+    margin-top: 1rem;
+  }
+
+  .check-item {
+    background: #fff;
+    border: 1px solid var(--border);
+    border-radius: 10px;
+    padding: 0.7rem 0.9rem;
+    display: flex;
+    align-items: center;
+    gap: 0.55rem;
+    font-size: 0.82rem;
+  }
+
+  .check-icon { font-size: 0.9rem; flex-shrink: 0; }
+  .check-label { color: var(--muted); }
+  .check-value { font-weight: 500; margin-left: auto; font-size: 0.8rem; }
+  .check-value.ok     { color: var(--green); }
+  .check-value.warn   { color: var(--yellow); }
+  .check-value.danger { color: var(--red); }
+  .check-value.na     { color: var(--muted); }
+
+  /* Loader */
+  .loader-wrap {
+    display: none;
+    position: relative;
+    z-index: 1;
+    margin-top: 2rem;
+    text-align: center;
+  }
+
+  .loader-wrap.active { display: block; }
+
+  .spinner {
+    width: 36px; height: 36px;
+    border: 3px solid var(--border);
+    border-top-color: var(--accent);
+    border-radius: 50%;
+    animation: spin 0.8s linear infinite;
+    margin: 0 auto 0.7rem;
+  }
+  @keyframes spin { to { transform: rotate(360deg); } }
+
+  .loader-text { color: var(--muted); font-size: 0.88rem; }
+
+  /* Examples */
+  .examples {
+    position: relative;
+    z-index: 1;
+    margin-top: 2.5rem;
+    text-align: center;
+    width: 100%;
+    max-width: 620px;
+  }
+
+  .examples-label {
+    font-size: 0.78rem;
+    color: var(--muted);
+    margin-bottom: 0.6rem;
+    text-transform: uppercase;
+    letter-spacing: 0.08em;
+  }
+
+  .example-pills {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0.5rem;
+    justify-content: center;
+  }
+
+  .pill {
+    background: #fff;
+    border: 1.5px solid var(--border);
+    border-radius: 999px;
+    padding: 0.35rem 0.85rem;
+    font-size: 0.8rem;
+    color: var(--muted);
+    cursor: pointer;
+    transition: all 0.15s;
+  }
+  .pill:hover { border-color: var(--accent); color: var(--accent); background: var(--accent-light); }
+
+  /* How it works */
+  .how-section {
+    position: relative;
+    z-index: 1;
+    margin-top: 3.5rem;
+    width: 100%;
+    max-width: 620px;
+    margin-bottom: 4rem;
+  }
+
+  .how-title {
+    font-family: 'DM Sans', sans-serif;
+    font-weight: 700;
+    font-size: 0.85rem;
+    text-transform: uppercase;
+    letter-spacing: 0.1em;
+    color: var(--muted);
+    margin-bottom: 1rem;
+    text-align: center;
+  }
+
+  .signals-row {
+    display: grid;
+    grid-template-columns: repeat(4, 1fr);
+    gap: 0.75rem;
+  }
+
+  .signal-card {
+    background: var(--surface);
+    border: 1.5px solid var(--border);
+    border-radius: 12px;
+    padding: 1rem 0.75rem;
+    text-align: center;
+    box-shadow: 0 1px 4px rgba(0,0,0,0.04);
+    transition: border-color 0.15s, box-shadow 0.15s;
+  }
+
+  .signal-card:hover {
+    border-color: rgba(242,100,25,0.3);
+    box-shadow: 0 3px 12px rgba(242,100,25,0.08);
+  }
+
+  .signal-icon { font-size: 1.4rem; margin-bottom: 0.5rem; }
+  .signal-name { font-size: 0.75rem; font-weight: 500; margin-bottom: 0.3rem; }
+  .signal-desc { font-size: 0.7rem; color: var(--muted); line-height: 1.4; }
+
+  footer {
+    position: relative;
+    z-index: 1;
+    color: var(--muted);
+    font-size: 0.75rem;
+    text-align: center;
+    padding: 1.5rem;
+    border-top: 1px solid var(--border-soft);
+    width: 100%;
+    margin-top: auto;
+  }
+
+  .attribution-row {
+    margin-top: 1rem;
+    padding-top: 0.75rem;
+    border-top: 1px solid var(--border-soft);
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0.5rem 1.5rem;
+    font-size: 0.72rem;
+    color: var(--muted);
+  }
+
+  .error-msg {
+    display: none;
+    position: relative;
+    z-index: 1;
+    margin-top: 1rem;
+    width: 100%;
+    max-width: 620px;
+    background: #fff5f5;
+    border: 1.5px solid #fca5a5;
+    border-radius: 12px;
+    padding: 0.9rem 1.1rem;
+    font-size: 0.88rem;
+    color: var(--red);
+  }
+    .checks-grid { grid-template-columns: 1fr; }
+    .signals-row { grid-template-columns: 1fr 1fr; }
+    .input-wrap { flex-direction: column; }
+    .check-btn { width: 100%; }
+  }
+</style>
+</head>
+<body>
+
+<header>
+  <div class="logo">
+    <div class="logo-icon">🔍</div>
+    <span class="logo-text">SiteCheck</span>
+  </div>
+  <h1>¿Puedes confiar en<br>este <span>sitio web?</span></h1>
+  <p class="subtitle">Pega cualquier URL y analiza en segundos si es seguro, sospechoso o peligroso.</p>
+</header>
+
+<div class="search-card">
+  <div class="input-wrap">
+    <input class="url-input" id="urlInput" type="text" placeholder="https://ejemplo.com" autocomplete="off" spellcheck="false" />
+    <button class="check-btn" id="checkBtn" onclick="checkSite()">Verificar →</button>
+  </div>
+  <p class="hint">Funciona con cualquier URL — incluyendo acortadores y enlaces sospechosos</p>
+</div>
+
+<div class="loader-wrap" id="loader">
+  <div class="spinner"></div>
+  <p class="loader-text">Analizando el sitio…</p>
+</div>
+
+<div class="result-panel" id="resultPanel">
+  <div class="result-main" id="resultMain">
+    <div class="verdict-row">
+      <div class="traffic-light" id="trafficLight"></div>
+      <div class="verdict-text">
+        <h2 id="verdictTitle"></h2>
+        <div class="url-display" id="urlDisplay"></div>
+      </div>
+    </div>
+    <p class="verdict-desc" id="verdictDesc"></p>
+    <div class="checks-grid" id="checksGrid"></div>
+    <div class="attribution-row" id="attributionRow"></div>
+  </div>
+</div>
+
+<div class="error-msg" id="errorMsg"></div>
+
+<div class="examples">
+  <p class="examples-label">Probar con ejemplos</p>
+  <div class="example-pills">
+    <span class="pill" onclick="tryExample('https://google.com')">google.com</span>
+    <span class="pill" onclick="tryExample('https://amazon.com')">amazon.com</span>
+    <span class="pill" onclick="tryExample('http://amaz0n-ofertas.xyz')">amaz0n-ofertas.xyz</span>
+    <span class="pill" onclick="tryExample('https://banco-seguro-login.tk')">banco-seguro-login.tk</span>
+    <span class="pill" onclick="tryExample('https://wikipedia.org')">wikipedia.org</span>
+  </div>
+</div>
+
+<div class="how-section">
+  <p class="how-title">Señales que analizamos</p>
+  <div class="signals-row">
+    <div class="signal-card">
+      <div class="signal-icon">🛡️</div>
+      <div class="signal-name">Safe Browsing</div>
+      <div class="signal-desc">Base de datos de Google con millones de sitios maliciosos</div>
+    </div>
+    <div class="signal-card">
+      <div class="signal-icon">🦠</div>
+      <div class="signal-name">VirusTotal</div>
+      <div class="signal-desc">70+ motores antivirus escanean la URL en tiempo real</div>
+    </div>
+    <div class="signal-card">
+      <div class="signal-icon">📅</div>
+      <div class="signal-name">Antigüedad</div>
+      <div class="signal-desc">Dominios nuevos son señal de alerta en estafas</div>
+    </div>
+    <div class="signal-card">
+      <div class="signal-icon">🔒</div>
+      <div class="signal-name">HTTPS / SSL</div>
+      <div class="signal-desc">Verificamos certificado de seguridad del sitio</div>
+    </div>
+  </div>
+</div>
+
+<footer>
+  SiteCheck · Prototipo · La verificación real requiere integrar Google Safe Browsing y VirusTotal APIs
+</footer>
+
+<script>
+  const VERDICT_EMOJI = { green: '✅', yellow: '⚠️', red: '🚨', gray: '❓' };
+
+  async function checkSite() {
+    const input = document.getElementById('urlInput').value.trim();
+    if (!input) { document.getElementById('urlInput').focus(); return; }
+
+    // Ocultar resultado anterior y mostrar loader
+    document.getElementById('resultPanel').style.display = 'none';
+    document.getElementById('errorMsg').style.display = 'none';
+    document.getElementById('loader').classList.add('active');
+    document.getElementById('checkBtn').disabled = true;
+
+    try {
+      const response = await fetch('/api/check', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ url: input }),
+      });
+
+      if (!response.ok) {
+        const err = await response.json().catch(() => ({}));
+        throw new Error(err.error || `Error ${response.status}`);
+      }
+
+      const data = await response.json();
+      renderResult(data);
+
+    } catch (err) {
+      showError(err.message || 'No se pudo analizar el sitio. Intenta de nuevo.');
+    } finally {
+      document.getElementById('loader').classList.remove('active');
+      document.getElementById('checkBtn').disabled = false;
+    }
+  }
+
+  function renderResult(data) {
+    const { verdict, title, desc, domain, checks, attribution } = data;
+
+    const panel = document.getElementById('resultPanel');
+    const main  = document.getElementById('resultMain');
+    const light = document.getElementById('trafficLight');
+
+    main.className  = 'result-main ' + verdict;
+    light.className = 'traffic-light ' + verdict;
+    light.textContent = VERDICT_EMOJI[verdict] ?? '❓';
+
+    document.getElementById('verdictTitle').textContent = title;
+    document.getElementById('urlDisplay').textContent   = domain;
+    document.getElementById('verdictDesc').textContent  = desc;
+
+    // Checks grid
+    const grid = document.getElementById('checksGrid');
+    grid.innerHTML = (checks ?? []).map(c => `
+      <div class="check-item">
+        <span class="check-icon">${c.icon}</span>
+        <span class="check-label">${c.label}</span>
+        <span class="check-value ${c.cls}">${c.value}</span>
+      </div>`).join('');
+
+    // Atribución obligatoria de Google
+    document.getElementById('attributionRow').innerHTML = `
+      <span>🔍 ${attribution?.webRisk ?? ''}</span>
+      <span>📡 ${attribution?.ipqs ?? ''}</span>`;
+
+    panel.style.display = 'block';
+  }
+
+  function showError(msg) {
+    const el = document.getElementById('errorMsg');
+    el.textContent = '⚠️ ' + msg;
+    el.style.display = 'block';
+  }
+
+  function tryExample(url) {
+    document.getElementById('urlInput').value = url;
+    checkSite();
+  }
+
+  document.getElementById('urlInput').addEventListener('keydown', e => {
+    if (e.key === 'Enter') checkSite();
   });
-}
-
-// ── Google Web Risk ──────────────────────────────────────────────────────────
-async function checkWebRisk(url, apiKey) {
-  if (!apiKey) return { available: false };
-
-  const encoded  = encodeURIComponent(url);
-  const endpoint = `https://webrisk.googleapis.com/v1/uris:search?threatTypes=MALWARE&threatTypes=SOCIAL_ENGINEERING&threatTypes=UNWANTED_SOFTWARE&uri=${encoded}&key=${apiKey}`;
-
-  const response = await fetch(endpoint, { signal: AbortSignal.timeout(5000) });
-  if (!response.ok) return { available: false };
-
-  const data = await response.json();
-
-  // Si viene "threat" en la respuesta, el sitio está en la lista negra
-  const isFlagged = !!(data.threat);
-  const threatType = isFlagged ? data.threat?.threatTypes?.[0] ?? 'UNKNOWN' : null;
-
-  return { available: true, isFlagged, threatType };
-}
-
-// ── IPQualityScore ───────────────────────────────────────────────────────────
-async function checkIPQS(url, apiKey) {
-  if (!apiKey) return { available: false };
-
-  const encoded  = encodeURIComponent(url);
-  const endpoint = `https://www.ipqualityscore.com/api/json/url/${apiKey}/${encoded}?strictness=1&fast=1`;
-
-  const response = await fetch(endpoint, { signal: AbortSignal.timeout(5000) });
-  if (!response.ok) return { available: false };
-
-  const data = await response.json();
-
-  return {
-    available:    true,
-    phishing:     data.phishing     ?? false,
-    malware:      data.malware      ?? false,
-    suspicious:   data.suspicious   ?? false,
-    spam:         data.spamming     ?? false,
-    riskScore:    data.risk_score   ?? 0,     // 0–100, mayor = más riesgo
-    domainAge:    data.domain_age?.human ?? 'Desconocida',
-    hasHttps:     (data.server ?? '').includes('443') || url.startsWith('https'),
-    category:     data.category     ?? null,
-  };
-}
-
-// ── Construir lista de checks para mostrar en el frontend ────────────────────
-function buildChecks(webRisk, ipqs, parsedUrl) {
-  const checks = [];
-
-  // Check 1: Google Web Risk
-  if (webRisk?.available) {
-    checks.push({
-      icon:  '🛡️',
-      label: 'Google Web Risk',
-      value: webRisk.isFlagged ? 'Detectado' : 'Limpio',
-      cls:   webRisk.isFlagged ? 'danger' : 'ok',
-    });
-  } else {
-    checks.push({ icon: '🛡️', label: 'Google Web Risk', value: 'No disponible', cls: 'na' });
-  }
-
-  // Check 2: Phishing / Malware (IPQS)
-  if (ipqs?.available) {
-    const isBad = ipqs.phishing || ipqs.malware;
-    checks.push({
-      icon:  '🦠',
-      label: 'Phishing / Malware',
-      value: isBad ? 'Detectado' : 'Limpio',
-      cls:   isBad ? 'danger' : 'ok',
-    });
-
-    // Check 3: Risk Score
-    const riskCls = ipqs.riskScore >= 75 ? 'danger' : ipqs.riskScore >= 40 ? 'warn' : 'ok';
-    checks.push({
-      icon:  '📊',
-      label: 'Puntuación de riesgo',
-      value: `${ipqs.riskScore} / 100`,
-      cls:   riskCls,
-    });
-
-    // Check 4: Antigüedad del dominio
-    checks.push({
-      icon:  '📅',
-      label: 'Antigüedad',
-      value: ipqs.domainAge,
-      cls:   ipqs.domainAge === 'Desconocida' ? 'na' : 'ok',
-    });
-  } else {
-    checks.push({ icon: '🦠', label: 'Phishing / Malware', value: 'No disponible', cls: 'na' });
-    checks.push({ icon: '📊', label: 'Puntuación de riesgo', value: '—', cls: 'na' });
-    checks.push({ icon: '📅', label: 'Antigüedad', value: '—', cls: 'na' });
-  }
-
-  // Check 5: HTTPS
-  const hasHttps = parsedUrl.protocol === 'https:';
-  checks.push({
-    icon:  '🔒',
-    label: 'HTTPS',
-    value: hasHttps ? 'Sí' : 'No',
-    cls:   hasHttps ? 'ok' : 'warn',
-  });
-
-  return checks;
-}
-
-// ── Calcular veredicto final ─────────────────────────────────────────────────
-function calcVerdict(checks) {
-  // Si alguna fuente principal detecta amenaza → ROJO
-  const hasDanger = checks.some(c => c.cls === 'danger');
-  if (hasDanger) return 'red';
-
-  // Si ninguna fuente está disponible → GRIS
-  const allNA = checks.every(c => c.cls === 'na');
-  if (allNA) return 'gray';
-
-  // Si hay advertencias → AMARILLO
-  const hasWarn = checks.some(c => c.cls === 'warn');
-  if (hasWarn) return 'yellow';
-
-  // Todo limpio → VERDE
-  return 'green';
-}
-
-// ── Mensajes por veredicto ───────────────────────────────────────────────────
-const VERDICT_MESSAGES = {
-  green: {
-    title: 'Sitio Confiable',
-    desc:  'Este sitio no presenta señales de riesgo. Fue verificado como seguro por Google Web Risk e IPQualityScore. Aun así, verifica siempre que la URL sea exactamente la correcta.',
-  },
-  yellow: {
-    title: 'Precaución',
-    desc:  'Este sitio tiene algunas características que merecen atención. Puede ser legítimo, pero te recomendamos no ingresar información sensible si tienes dudas.',
-  },
-  red: {
-    title: 'Sitio Peligroso',
-    desc:  'Este sitio fue marcado como malicioso o sospechoso por nuestras fuentes de seguridad. No recomendamos acceder ni ingresar ningún dato personal o financiero.',
-  },
-  gray: {
-    title: 'Sin Información',
-    desc:  'No encontramos información suficiente para evaluar este sitio. Puede ser muy nuevo o estar fuera del alcance de las bases de datos consultadas. Procede con cautela.',
-  },
-};
+</script>
+</body>
+</html>
