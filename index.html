@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>SiteCheck — ¿Es confiable este sitio?</title>
+<title>VeriSafe — ¿Es confiable este sitio?</title>
 <link href="https://fonts.googleapis.com/css2?family=Fraunces:ital,opsz,wght@0,9..144,300;0,9..144,600;1,9..144,300&family=DM+Sans:wght@300;400;500&display=swap" rel="stylesheet">
 <style>
   *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
@@ -36,7 +36,6 @@
     overflow-x: hidden;
   }
 
-  /* Background texture */
   body::before {
     content: '';
     position: fixed;
@@ -45,13 +44,42 @@
     transform: translateX(-50%);
     width: 700px;
     height: 500px;
-    background: radial-gradient(ellipse, rgba(242, 100, 25, 0.07) 0%, transparent 70%);
+    background: radial-gradient(ellipse, rgba(242,100,25,0.07) 0%, transparent 70%);
     pointer-events: none;
     z-index: 0;
   }
 
+  /* ── Language toggle ── */
+  .lang-bar {
+    position: relative;
+    z-index: 10;
+    width: 100%;
+    max-width: 620px;
+    display: flex;
+    justify-content: flex-end;
+    padding-top: 1.2rem;
+  }
+
+  .lang-btn {
+    background: var(--surface);
+    border: 1.5px solid var(--border);
+    border-radius: 999px;
+    padding: 0.3rem 0.9rem;
+    font-size: 0.78rem;
+    font-family: 'DM Sans', sans-serif;
+    font-weight: 500;
+    color: var(--muted);
+    cursor: pointer;
+    transition: all 0.15s;
+    display: flex;
+    align-items: center;
+    gap: 0.4rem;
+  }
+  .lang-btn:hover { border-color: var(--accent); color: var(--accent); background: var(--accent-light); }
+
+  /* ── Header ── */
   header {
-    margin-top: 3.5rem;
+    margin-top: 2rem;
     text-align: center;
     position: relative;
     z-index: 1;
@@ -92,11 +120,6 @@
     color: #1a1614;
   }
 
-  h1 em {
-    font-style: italic;
-    font-weight: 300;
-  }
-
   h1 span {
     background: linear-gradient(90deg, var(--accent), #ff8c42);
     -webkit-background-clip: text;
@@ -115,7 +138,7 @@
     line-height: 1.7;
   }
 
-  /* Search box */
+  /* ── Search card ── */
   .search-card {
     position: relative;
     z-index: 1;
@@ -147,7 +170,6 @@
     outline: none;
     transition: border-color 0.2s, box-shadow 0.2s;
   }
-
   .url-input::placeholder { color: var(--muted); }
   .url-input:focus { border-color: var(--accent); box-shadow: 0 0 0 3px rgba(242,100,25,0.1); }
 
@@ -166,129 +188,15 @@
     letter-spacing: 0.01em;
     box-shadow: 0 4px 14px rgba(242,100,25,0.3);
   }
-
   .check-btn:hover { opacity: 0.92; transform: translateY(-1px); box-shadow: 0 6px 18px rgba(242,100,25,0.35); }
   .check-btn:active { transform: translateY(0); }
   .check-btn:disabled { opacity: 0.4; cursor: not-allowed; transform: none; box-shadow: none; }
 
-  .hint {
-    margin-top: 0.75rem;
-    font-size: 0.78rem;
-    color: var(--muted);
-  }
+  .hint { margin-top: 0.75rem; font-size: 0.78rem; color: var(--muted); }
 
-  /* Result panel */
-  .result-panel {
-    position: relative;
-    z-index: 1;
-    margin-top: 1.5rem;
-    width: 100%;
-    max-width: 620px;
-    display: none;
-    animation: fadeUp 0.35s ease;
-  }
-
-  @keyframes fadeUp {
-    from { opacity: 0; transform: translateY(16px); }
-    to   { opacity: 1; transform: translateY(0); }
-  }
-
-  .result-main {
-    border-radius: 18px;
-    border: 1.5px solid transparent;
-    padding: 1.6rem;
-    margin-bottom: 1rem;
-    transition: all 0.4s ease;
-    box-shadow: 0 2px 12px rgba(0,0,0,0.05);
-  }
-
-  .result-main.green  { background: #f0fdf6; border-color: #a7f0c8; }
-  .result-main.yellow { background: #fffbeb; border-color: #fcd97a; }
-  .result-main.red    { background: #fff5f5; border-color: #fca5a5; }
-  .result-main.gray   { background: #f9f9f9; border-color: #d1d1d1; }
-
-  .verdict-row {
-    display: flex;
-    align-items: center;
-    gap: 1rem;
-    margin-bottom: 1rem;
-  }
-
-  .traffic-light {
-    width: 52px;
-    height: 52px;
-    border-radius: 50%;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    font-size: 1.5rem;
-    flex-shrink: 0;
-    position: relative;
-  }
-
-  .traffic-light.green  { background: #dcfce7; box-shadow: 0 0 20px rgba(26,158,92,0.2); }
-  .traffic-light.yellow { background: #fef3c7; box-shadow: 0 0 20px rgba(212,134,10,0.2); }
-  .traffic-light.red    { background: #fee2e2; box-shadow: 0 0 20px rgba(214,59,47,0.2); }
-  .traffic-light.gray   { background: #f3f4f6; box-shadow: 0 0 20px rgba(138,138,138,0.15); }
-
-  .verdict-text h2 {
-    font-family: 'DM Sans', sans-serif;
-    font-weight: 700;
-    font-size: 1.15rem;
-    margin-bottom: 0.2rem;
-  }
-
-  .verdict-text .url-display {
-    font-size: 0.8rem;
-    color: var(--muted);
-    word-break: break-all;
-  }
-
-  .verdict-desc {
-    font-size: 0.92rem;
-    line-height: 1.65;
-    color: #4a4540;
-    opacity: 1;
-  }
-
-  /* Checks grid */
-  .checks-grid {
-    display: grid;
-    grid-template-columns: 1fr 1fr;
-    gap: 0.6rem;
-    margin-top: 1rem;
-  }
-
-  .check-item {
-    background: #fff;
-    border: 1px solid var(--border);
-    border-radius: 10px;
-    padding: 0.7rem 0.9rem;
-    display: flex;
-    align-items: center;
-    gap: 0.55rem;
-    font-size: 0.82rem;
-  }
-
-  .check-icon { font-size: 0.9rem; flex-shrink: 0; }
-  .check-label { color: var(--muted); }
-  .check-value { font-weight: 500; margin-left: auto; font-size: 0.8rem; }
-  .check-value.ok     { color: var(--green); }
-  .check-value.warn   { color: var(--yellow); }
-  .check-value.danger { color: var(--red); }
-  .check-value.na     { color: var(--muted); }
-
-  /* Loader */
-  .loader-wrap {
-    display: none;
-    position: relative;
-    z-index: 1;
-    margin-top: 2rem;
-    text-align: center;
-  }
-
+  /* ── Loader ── */
+  .loader-wrap { display: none; position: relative; z-index: 1; margin-top: 2rem; text-align: center; }
   .loader-wrap.active { display: block; }
-
   .spinner {
     width: 36px; height: 36px;
     border: 3px solid var(--border);
@@ -298,129 +206,144 @@
     margin: 0 auto 0.7rem;
   }
   @keyframes spin { to { transform: rotate(360deg); } }
-
   .loader-text { color: var(--muted); font-size: 0.88rem; }
 
-  /* Examples */
-  .examples {
-    position: relative;
-    z-index: 1;
-    margin-top: 2.5rem;
-    text-align: center;
-    width: 100%;
-    max-width: 620px;
+  /* ── Result panel ── */
+  .result-panel {
+    position: relative; z-index: 1;
+    margin-top: 1.5rem; width: 100%; max-width: 620px;
+    display: none; animation: fadeUp 0.35s ease;
+  }
+  @keyframes fadeUp {
+    from { opacity: 0; transform: translateY(16px); }
+    to   { opacity: 1; transform: translateY(0); }
   }
 
-  .examples-label {
-    font-size: 0.78rem;
-    color: var(--muted);
-    margin-bottom: 0.6rem;
-    text-transform: uppercase;
-    letter-spacing: 0.08em;
+  .result-main {
+    border-radius: 18px; border: 1.5px solid transparent;
+    padding: 1.6rem; margin-bottom: 1rem;
+    transition: all 0.4s ease; box-shadow: 0 2px 12px rgba(0,0,0,0.05);
   }
+  .result-main.green  { background: #f0fdf6; border-color: #a7f0c8; }
+  .result-main.yellow { background: #fffbeb; border-color: #fcd97a; }
+  .result-main.red    { background: #fff5f5; border-color: #fca5a5; }
+  .result-main.gray   { background: #f9f9f9; border-color: #d1d1d1; }
 
-  .example-pills {
-    display: flex;
-    flex-wrap: wrap;
-    gap: 0.5rem;
-    justify-content: center;
+  .verdict-row { display: flex; align-items: center; gap: 1rem; margin-bottom: 1rem; }
+
+  .traffic-light {
+    width: 52px; height: 52px; border-radius: 50%;
+    display: flex; align-items: center; justify-content: center;
+    font-size: 1.5rem; flex-shrink: 0;
   }
+  .traffic-light.green  { background: #dcfce7; box-shadow: 0 0 20px rgba(26,158,92,0.2); }
+  .traffic-light.yellow { background: #fef3c7; box-shadow: 0 0 20px rgba(212,134,10,0.2); }
+  .traffic-light.red    { background: #fee2e2; box-shadow: 0 0 20px rgba(214,59,47,0.2); }
+  .traffic-light.gray   { background: #f3f4f6; box-shadow: 0 0 20px rgba(138,138,138,0.15); }
 
-  .pill {
+  .verdict-text h2 { font-weight: 700; font-size: 1.15rem; margin-bottom: 0.2rem; }
+  .verdict-text .url-display { font-size: 0.8rem; color: var(--muted); word-break: break-all; }
+  .verdict-desc { font-size: 0.92rem; line-height: 1.65; color: #4a4540; margin-bottom: 0.5rem; }
+
+  /* ── Checks grid ── */
+  .checks-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 0.6rem; margin-top: 1rem; }
+
+  .check-item {
+    background: #fff; border: 1px solid var(--border); border-radius: 10px;
+    padding: 0.7rem 0.9rem; display: flex; align-items: center; gap: 0.55rem; font-size: 0.82rem;
+  }
+  .check-icon { font-size: 0.9rem; flex-shrink: 0; }
+  .check-label { color: var(--muted); }
+  .check-value { font-weight: 500; margin-left: auto; font-size: 0.8rem; }
+  .check-value.ok     { color: var(--green); }
+  .check-value.warn   { color: var(--yellow); }
+  .check-value.danger { color: var(--red); }
+  .check-value.na     { color: var(--muted); }
+
+  /* ── Score explanation box ── */
+  .score-explanation {
+    margin-top: 1rem;
     background: #fff;
     border: 1.5px solid var(--border);
-    border-radius: 999px;
-    padding: 0.35rem 0.85rem;
+    border-radius: 12px;
+    padding: 1rem 1.1rem;
     font-size: 0.8rem;
-    color: var(--muted);
+    color: #4a4540;
+    line-height: 1.6;
+  }
+
+  .score-explanation summary {
     cursor: pointer;
-    transition: all 0.15s;
+    font-weight: 600;
+    color: var(--muted);
+    font-size: 0.78rem;
+    text-transform: uppercase;
+    letter-spacing: 0.07em;
+    list-style: none;
+    display: flex;
+    align-items: center;
+    gap: 0.4rem;
+    user-select: none;
+  }
+  .score-explanation summary::after { content: '▸'; transition: transform 0.2s; }
+  .score-explanation[open] summary::after { transform: rotate(90deg); }
+  .score-explanation summary::-webkit-details-marker { display: none; }
+
+  .score-explanation .legend { margin-top: 0.85rem; display: flex; flex-direction: column; gap: 0.55rem; }
+  .score-explanation .legend-item { display: flex; align-items: flex-start; gap: 0.6rem; }
+  .legend-dot {
+    width: 10px; height: 10px; border-radius: 50%; flex-shrink: 0; margin-top: 3px;
+  }
+  .legend-dot.green  { background: var(--green); }
+  .legend-dot.yellow { background: var(--yellow); }
+  .legend-dot.red    { background: var(--red); }
+  .legend-dot.gray   { background: var(--gray); }
+
+  /* ── Attribution ── */
+  .attribution-row {
+    margin-top: 1rem; padding-top: 0.75rem;
+    border-top: 1px solid var(--border-soft);
+    display: flex; flex-wrap: wrap; gap: 0.5rem 1.5rem;
+    font-size: 0.72rem; color: var(--muted);
+  }
+
+  /* ── Error ── */
+  .error-msg {
+    display: none; position: relative; z-index: 1;
+    margin-top: 1rem; width: 100%; max-width: 620px;
+    background: #fff5f5; border: 1.5px solid #fca5a5;
+    border-radius: 12px; padding: 0.9rem 1.1rem;
+    font-size: 0.88rem; color: var(--red);
+  }
+
+  /* ── Examples ── */
+  .examples { position: relative; z-index: 1; margin-top: 2.5rem; text-align: center; width: 100%; max-width: 620px; }
+  .examples-label { font-size: 0.78rem; color: var(--muted); margin-bottom: 0.6rem; text-transform: uppercase; letter-spacing: 0.08em; }
+  .example-pills { display: flex; flex-wrap: wrap; gap: 0.5rem; justify-content: center; }
+  .pill {
+    background: #fff; border: 1.5px solid var(--border); border-radius: 999px;
+    padding: 0.35rem 0.85rem; font-size: 0.8rem; color: var(--muted);
+    cursor: pointer; transition: all 0.15s;
   }
   .pill:hover { border-color: var(--accent); color: var(--accent); background: var(--accent-light); }
 
-  /* How it works */
-  .how-section {
-    position: relative;
-    z-index: 1;
-    margin-top: 3.5rem;
-    width: 100%;
-    max-width: 620px;
-    margin-bottom: 4rem;
-  }
-
-  .how-title {
-    font-family: 'DM Sans', sans-serif;
-    font-weight: 700;
-    font-size: 0.85rem;
-    text-transform: uppercase;
-    letter-spacing: 0.1em;
-    color: var(--muted);
-    margin-bottom: 1rem;
-    text-align: center;
-  }
-
-  .signals-row {
-    display: grid;
-    grid-template-columns: repeat(4, 1fr);
-    gap: 0.75rem;
-  }
-
+  /* ── How section ── */
+  .how-section { position: relative; z-index: 1; margin-top: 3.5rem; width: 100%; max-width: 620px; margin-bottom: 4rem; }
+  .how-title { font-weight: 700; font-size: 0.85rem; text-transform: uppercase; letter-spacing: 0.1em; color: var(--muted); margin-bottom: 1rem; text-align: center; }
+  .signals-row { display: grid; grid-template-columns: repeat(4, 1fr); gap: 0.75rem; }
   .signal-card {
-    background: var(--surface);
-    border: 1.5px solid var(--border);
-    border-radius: 12px;
-    padding: 1rem 0.75rem;
-    text-align: center;
-    box-shadow: 0 1px 4px rgba(0,0,0,0.04);
-    transition: border-color 0.15s, box-shadow 0.15s;
+    background: var(--surface); border: 1.5px solid var(--border); border-radius: 12px;
+    padding: 1rem 0.75rem; text-align: center;
+    box-shadow: 0 1px 4px rgba(0,0,0,0.04); transition: border-color 0.15s, box-shadow 0.15s;
   }
-
-  .signal-card:hover {
-    border-color: rgba(242,100,25,0.3);
-    box-shadow: 0 3px 12px rgba(242,100,25,0.08);
-  }
-
+  .signal-card:hover { border-color: rgba(242,100,25,0.3); box-shadow: 0 3px 12px rgba(242,100,25,0.08); }
   .signal-icon { font-size: 1.4rem; margin-bottom: 0.5rem; }
   .signal-name { font-size: 0.75rem; font-weight: 500; margin-bottom: 0.3rem; }
   .signal-desc { font-size: 0.7rem; color: var(--muted); line-height: 1.4; }
 
-  footer {
-    position: relative;
-    z-index: 1;
-    color: var(--muted);
-    font-size: 0.75rem;
-    text-align: center;
-    padding: 1.5rem;
-    border-top: 1px solid var(--border-soft);
-    width: 100%;
-    margin-top: auto;
-  }
+  footer { position: relative; z-index: 1; color: var(--muted); font-size: 0.75rem; text-align: center; padding: 1.5rem; border-top: 1px solid var(--border-soft); width: 100%; margin-top: auto; }
 
-  .attribution-row {
-    margin-top: 1rem;
-    padding-top: 0.75rem;
-    border-top: 1px solid var(--border-soft);
-    display: flex;
-    flex-wrap: wrap;
-    gap: 0.5rem 1.5rem;
-    font-size: 0.72rem;
-    color: var(--muted);
-  }
-
-  .error-msg {
-    display: none;
-    position: relative;
-    z-index: 1;
-    margin-top: 1rem;
-    width: 100%;
-    max-width: 620px;
-    background: #fff5f5;
-    border: 1.5px solid #fca5a5;
-    border-radius: 12px;
-    padding: 0.9rem 1.1rem;
-    font-size: 0.88rem;
-    color: var(--red);
-  }
+  @media (max-width: 500px) {
     .checks-grid { grid-template-columns: 1fr; }
     .signals-row { grid-template-columns: 1fr 1fr; }
     .input-wrap { flex-direction: column; }
@@ -430,13 +353,20 @@
 </head>
 <body>
 
+<!-- Language toggle -->
+<div class="lang-bar">
+  <button class="lang-btn" id="langBtn" onclick="toggleLang()">
+    <span>🌐</span><span id="langLabel">English</span>
+  </button>
+</div>
+
 <header>
   <div class="logo">
     <div class="logo-icon">🔍</div>
-    <span class="logo-text">SiteCheck</span>
+    <span class="logo-text">VeriSafe</span>
   </div>
-  <h1>¿Puedes confiar en<br>este <span>sitio web?</span></h1>
-  <p class="subtitle">Pega cualquier URL y analiza en segundos si es seguro, sospechoso o peligroso.</p>
+  <h1 id="mainTitle">¿Puedes confiar en<br>este <span id="titleAccent">sitio web?</span></h1>
+  <p class="subtitle" id="mainSubtitle">Pega cualquier URL y analiza en segundos si es seguro, sospechoso o peligroso.</p>
 </header>
 
 <div class="search-card">
@@ -444,12 +374,12 @@
     <input class="url-input" id="urlInput" type="text" placeholder="https://ejemplo.com" autocomplete="off" spellcheck="false" />
     <button class="check-btn" id="checkBtn" onclick="checkSite()">Verificar →</button>
   </div>
-  <p class="hint">Funciona con cualquier URL — incluyendo acortadores y enlaces sospechosos</p>
+  <p class="hint" id="hintText">Funciona con cualquier URL — incluyendo acortadores y enlaces sospechosos</p>
 </div>
 
 <div class="loader-wrap" id="loader">
   <div class="spinner"></div>
-  <p class="loader-text">Analizando el sitio…</p>
+  <p class="loader-text" id="loaderText">Analizando el sitio…</p>
 </div>
 
 <div class="result-panel" id="resultPanel">
@@ -463,6 +393,30 @@
     </div>
     <p class="verdict-desc" id="verdictDesc"></p>
     <div class="checks-grid" id="checksGrid"></div>
+
+    <!-- Score explanation (collapsible) -->
+    <details class="score-explanation" id="scoreExplanation">
+      <summary id="explanationToggle">¿Cómo se calcula esta puntuación?</summary>
+      <div class="legend" id="legendContent">
+        <div class="legend-item">
+          <div class="legend-dot green"></div>
+          <div><strong id="legendGreenTitle">🟢 Confiable</strong> — <span id="legendGreenDesc">Sin detecciones en Google Web Risk ni IPQualityScore. Puntuación de riesgo menor a 40 y conexión HTTPS activa.</span></div>
+        </div>
+        <div class="legend-item">
+          <div class="legend-dot yellow"></div>
+          <div><strong id="legendYellowTitle">🟡 Precaución</strong> — <span id="legendYellowDesc">Puntuación de riesgo entre 40 y 74, ausencia de HTTPS, o dominio de creación muy reciente. No necesariamente peligroso, pero merece revisión.</span></div>
+        </div>
+        <div class="legend-item">
+          <div class="legend-dot red"></div>
+          <div><strong id="legendRedTitle">🔴 Peligroso</strong> — <span id="legendRedDesc">Detectado como phishing, malware o sitio engañoso por Google Web Risk o IPQualityScore. Puntuación de riesgo de 75 o más.</span></div>
+        </div>
+        <div class="legend-item">
+          <div class="legend-dot gray"></div>
+          <div><strong id="legendGrayTitle">⚫ Sin información</strong> — <span id="legendGrayDesc">No se encontraron registros en las bases de datos consultadas. Puede ser un dominio muy nuevo o privado.</span></div>
+        </div>
+      </div>
+    </details>
+
     <div class="attribution-row" id="attributionRow"></div>
   </div>
 </div>
@@ -470,7 +424,7 @@
 <div class="error-msg" id="errorMsg"></div>
 
 <div class="examples">
-  <p class="examples-label">Probar con ejemplos</p>
+  <p class="examples-label" id="examplesLabel">Probar con ejemplos</p>
   <div class="example-pills">
     <span class="pill" onclick="tryExample('https://google.com')">google.com</span>
     <span class="pill" onclick="tryExample('https://amazon.com')">amazon.com</span>
@@ -481,45 +435,163 @@
 </div>
 
 <div class="how-section">
-  <p class="how-title">Señales que analizamos</p>
+  <p class="how-title" id="howTitle">Señales que analizamos</p>
   <div class="signals-row">
     <div class="signal-card">
       <div class="signal-icon">🛡️</div>
-      <div class="signal-name">Safe Browsing</div>
-      <div class="signal-desc">Base de datos de Google con millones de sitios maliciosos</div>
+      <div class="signal-name">Google Web Risk</div>
+      <div class="signal-desc" id="signal1Desc">Base de datos de Google con millones de sitios maliciosos</div>
     </div>
     <div class="signal-card">
-      <div class="signal-icon">🦠</div>
-      <div class="signal-name">VirusTotal</div>
-      <div class="signal-desc">70+ motores antivirus escanean la URL en tiempo real</div>
+      <div class="signal-icon">📊</div>
+      <div class="signal-name">IPQualityScore</div>
+      <div class="signal-desc" id="signal2Desc">Análisis de reputación, phishing y puntuación de riesgo</div>
     </div>
     <div class="signal-card">
       <div class="signal-icon">📅</div>
-      <div class="signal-name">Antigüedad</div>
-      <div class="signal-desc">Dominios nuevos son señal de alerta en estafas</div>
+      <div class="signal-name" id="signal3Name">Antigüedad</div>
+      <div class="signal-desc" id="signal3Desc">Dominios nuevos son señal de alerta en estafas</div>
     </div>
     <div class="signal-card">
       <div class="signal-icon">🔒</div>
       <div class="signal-name">HTTPS / SSL</div>
-      <div class="signal-desc">Verificamos certificado de seguridad del sitio</div>
+      <div class="signal-desc" id="signal4Desc">Verificamos el certificado de seguridad del sitio</div>
     </div>
   </div>
 </div>
 
-<footer>
-  SiteCheck · Prototipo · La verificación real requiere integrar Google Safe Browsing y VirusTotal APIs
+<footer id="footerText">
+  VeriSafe · Advisory provided by Google (Web Risk) · URL analysis by IPQualityScore
 </footer>
 
 <script>
+  // ── Translations ────────────────────────────────────────────────────────────
+  const T = {
+    es: {
+      pageTitle:       'VeriSafe — ¿Es confiable este sitio?',
+      langLabel:       'English',
+      mainTitle:       '¿Puedes confiar en<br>este <span id="titleAccent">sitio web?</span>',
+      subtitle:        'Pega cualquier URL y analiza en segundos si es seguro, sospechoso o peligroso.',
+      placeholder:     'https://ejemplo.com',
+      btnVerify:       'Verificar →',
+      hint:            'Funciona con cualquier URL — incluyendo acortadores y enlaces sospechosos',
+      loading:         'Analizando el sitio…',
+      examplesLabel:   'Probar con ejemplos',
+      howTitle:        'Señales que analizamos',
+      signal1Desc:     'Base de datos de Google con millones de sitios maliciosos',
+      signal2Desc:     'Análisis de reputación, phishing y puntuación de riesgo',
+      signal3Name:     'Antigüedad',
+      signal3Desc:     'Dominios nuevos son señal de alerta en estafas',
+      signal4Desc:     'Verificamos el certificado de seguridad del sitio',
+      explanationToggle: '¿Cómo se calcula esta puntuación?',
+      legendGreenTitle:  '🟢 Confiable',
+      legendGreenDesc:   'Sin detecciones en Google Web Risk ni IPQualityScore. Puntuación de riesgo menor a 40 y conexión HTTPS activa.',
+      legendYellowTitle: '🟡 Precaución',
+      legendYellowDesc:  'Puntuación de riesgo entre 40 y 74, ausencia de HTTPS, o dominio de creación muy reciente. No necesariamente peligroso, pero merece revisión.',
+      legendRedTitle:    '🔴 Peligroso',
+      legendRedDesc:     'Detectado como phishing, malware o sitio engañoso por Google Web Risk o IPQualityScore. Puntuación de riesgo de 75 o más.',
+      legendGrayTitle:   '⚫ Sin información',
+      legendGrayDesc:    'No se encontraron registros en las bases de datos consultadas. Puede ser un dominio muy nuevo o privado.',
+      footer:            'VeriSafe · Advisory provided by Google (Web Risk) · URL analysis by IPQualityScore',
+      errorGeneric:      'No se pudo analizar el sitio. Intenta de nuevo.',
+    },
+    en: {
+      pageTitle:       'VeriSafe — Is this website safe?',
+      langLabel:       'Español',
+      mainTitle:       'Can you trust<br>this <span id="titleAccent">website?</span>',
+      subtitle:        'Paste any URL and find out in seconds if it\'s safe, suspicious, or dangerous.',
+      placeholder:     'https://example.com',
+      btnVerify:       'Check →',
+      hint:            'Works with any URL — including shorteners and suspicious links',
+      loading:         'Analyzing the site…',
+      examplesLabel:   'Try with examples',
+      howTitle:        'What we analyze',
+      signal1Desc:     'Google\'s database of millions of malicious websites',
+      signal2Desc:     'Reputation analysis, phishing detection, and risk scoring',
+      signal3Name:     'Domain Age',
+      signal3Desc:     'Newly registered domains are a common red flag in scams',
+      signal4Desc:     'We verify the site\'s SSL security certificate',
+      explanationToggle: 'How is this score calculated?',
+      legendGreenTitle:  '🟢 Safe',
+      legendGreenDesc:   'No detections from Google Web Risk or IPQualityScore. Risk score below 40 and HTTPS active.',
+      legendYellowTitle: '🟡 Caution',
+      legendYellowDesc:  'Risk score between 40 and 74, missing HTTPS, or a very recently registered domain. Not necessarily dangerous, but worth reviewing.',
+      legendRedTitle:    '🔴 Dangerous',
+      legendRedDesc:     'Flagged as phishing, malware, or a deceptive site by Google Web Risk or IPQualityScore. Risk score of 75 or higher.',
+      legendGrayTitle:   '⚫ No information',
+      legendGrayDesc:    'No records found in the databases consulted. May be a very new or private domain.',
+      footer:            'VeriSafe · Advisory provided by Google (Web Risk) · URL analysis by IPQualityScore',
+      errorGeneric:      'Could not analyze the site. Please try again.',
+    }
+  };
+
+  // ── Detect language ─────────────────────────────────────────────────────────
+  const browserLang = (navigator.language || navigator.userLanguage || 'es').toLowerCase();
+  let currentLang = browserLang.startsWith('en') ? 'en' : 'es';
+
+  function applyLang(lang) {
+    const t = T[lang];
+    document.documentElement.lang = lang;
+    document.title = t.pageTitle;
+    document.getElementById('langLabel').textContent         = t.langLabel;
+    document.getElementById('mainTitle').innerHTML           = t.mainTitle;
+    document.getElementById('mainSubtitle').textContent      = t.subtitle;
+    document.getElementById('urlInput').placeholder          = t.placeholder;
+    document.getElementById('checkBtn').textContent          = t.btnVerify;
+    document.getElementById('hintText').textContent          = t.hint;
+    document.getElementById('loaderText').textContent        = t.loading;
+    document.getElementById('examplesLabel').textContent     = t.examplesLabel;
+    document.getElementById('howTitle').textContent          = t.howTitle;
+    document.getElementById('signal1Desc').textContent       = t.signal1Desc;
+    document.getElementById('signal2Desc').textContent       = t.signal2Desc;
+    document.getElementById('signal3Name').textContent       = t.signal3Name;
+    document.getElementById('signal3Desc').textContent       = t.signal3Desc;
+    document.getElementById('signal4Desc').textContent       = t.signal4Desc;
+    document.getElementById('explanationToggle').textContent = t.explanationToggle;
+    document.getElementById('legendGreenTitle').textContent  = t.legendGreenTitle;
+    document.getElementById('legendGreenDesc').textContent   = t.legendGreenDesc;
+    document.getElementById('legendYellowTitle').textContent = t.legendYellowTitle;
+    document.getElementById('legendYellowDesc').textContent  = t.legendYellowDesc;
+    document.getElementById('legendRedTitle').textContent    = t.legendRedTitle;
+    document.getElementById('legendRedDesc').textContent     = t.legendRedDesc;
+    document.getElementById('legendGrayTitle').textContent   = t.legendGrayTitle;
+    document.getElementById('legendGrayDesc').textContent    = t.legendGrayDesc;
+    document.getElementById('footerText').textContent        = t.footer;
+  }
+
+  function toggleLang() {
+    currentLang = currentLang === 'es' ? 'en' : 'es';
+    applyLang(currentLang);
+  }
+
+  // Apply on load
+  applyLang(currentLang);
+
+  // ── Verdict messages by language ────────────────────────────────────────────
+  const VERDICT_MSG = {
+    es: {
+      green:  { title: 'Sitio Confiable',   desc: 'Este sitio no presenta señales de riesgo. Fue verificado como seguro por Google Web Risk e IPQualityScore. Aun así, verifica siempre que la URL sea exactamente la correcta.' },
+      yellow: { title: 'Precaución',        desc: 'Este sitio tiene características que merecen atención. Puede ser legítimo, pero te recomendamos no ingresar información sensible si tienes dudas.' },
+      red:    { title: 'Sitio Peligroso',   desc: 'Este sitio fue marcado como malicioso o sospechoso. No recomendamos acceder ni ingresar ningún dato personal o financiero.' },
+      gray:   { title: 'Sin Información',   desc: 'No encontramos información suficiente para evaluar este sitio. Puede ser muy nuevo o estar fuera del alcance de las bases de datos consultadas.' },
+    },
+    en: {
+      green:  { title: 'Safe Site',         desc: 'This site shows no signs of risk. It was verified as safe by Google Web Risk and IPQualityScore. Always double-check that the URL is exactly right.' },
+      yellow: { title: 'Caution',           desc: 'This site has some characteristics worth reviewing. It may be legitimate, but we recommend not entering sensitive information if you have doubts.' },
+      red:    { title: 'Dangerous Site',    desc: 'This site was flagged as malicious or suspicious. We do not recommend visiting it or entering any personal or financial information.' },
+      gray:   { title: 'No Information',    desc: 'We couldn\'t find enough information to evaluate this site. It may be very new or outside the scope of the databases consulted.' },
+    }
+  };
+
   const VERDICT_EMOJI = { green: '✅', yellow: '⚠️', red: '🚨', gray: '❓' };
 
+  // ── Check site ──────────────────────────────────────────────────────────────
   async function checkSite() {
     const input = document.getElementById('urlInput').value.trim();
     if (!input) { document.getElementById('urlInput').focus(); return; }
 
-    // Ocultar resultado anterior y mostrar loader
     document.getElementById('resultPanel').style.display = 'none';
-    document.getElementById('errorMsg').style.display = 'none';
+    document.getElementById('errorMsg').style.display    = 'none';
     document.getElementById('loader').classList.add('active');
     document.getElementById('checkBtn').disabled = true;
 
@@ -539,7 +611,10 @@
       renderResult(data);
 
     } catch (err) {
-      showError(err.message || 'No se pudo analizar el sitio. Intenta de nuevo.');
+      const msg = currentLang === 'en'
+        ? (err.message || T.en.errorGeneric)
+        : (err.message || T.es.errorGeneric);
+      showError(msg);
     } finally {
       document.getElementById('loader').classList.remove('active');
       document.getElementById('checkBtn').disabled = false;
@@ -547,21 +622,19 @@
   }
 
   function renderResult(data) {
-    const { verdict, title, desc, domain, checks, attribution } = data;
+    const { verdict, domain, checks, attribution } = data;
+    const msg = VERDICT_MSG[currentLang][verdict] ?? VERDICT_MSG[currentLang].gray;
 
-    const panel = document.getElementById('resultPanel');
     const main  = document.getElementById('resultMain');
     const light = document.getElementById('trafficLight');
-
     main.className  = 'result-main ' + verdict;
     light.className = 'traffic-light ' + verdict;
     light.textContent = VERDICT_EMOJI[verdict] ?? '❓';
 
-    document.getElementById('verdictTitle').textContent = title;
+    document.getElementById('verdictTitle').textContent = msg.title;
     document.getElementById('urlDisplay').textContent   = domain;
-    document.getElementById('verdictDesc').textContent  = desc;
+    document.getElementById('verdictDesc').textContent  = msg.desc;
 
-    // Checks grid
     const grid = document.getElementById('checksGrid');
     grid.innerHTML = (checks ?? []).map(c => `
       <div class="check-item">
@@ -570,12 +643,11 @@
         <span class="check-value ${c.cls}">${c.value}</span>
       </div>`).join('');
 
-    // Atribución obligatoria de Google
     document.getElementById('attributionRow').innerHTML = `
       <span>🔍 ${attribution?.webRisk ?? ''}</span>
       <span>📡 ${attribution?.ipqs ?? ''}</span>`;
 
-    panel.style.display = 'block';
+    document.getElementById('resultPanel').style.display = 'block';
   }
 
   function showError(msg) {
