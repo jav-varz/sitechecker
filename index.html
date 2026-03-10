@@ -423,4 +423,300 @@ height="0" width="0" style="display:none;visibility:hidden"></iframe></noscript>
 </header>
 
 <div class="search-card">
-  <div cla
+  <div class="input-wrap">
+    <input class="url-input" id="urlInput" type="text" placeholder="https://ejemplo.com" autocomplete="off" spellcheck="false" />
+    <button class="check-btn" id="checkBtn" onclick="checkSite()">Verificar →</button>
+  </div>
+  <p class="hint" id="hintText">Funciona con cualquier URL — incluyendo acortadores y enlaces sospechosos</p>
+</div>
+
+<div class="loader-wrap" id="loader">
+  <div class="spinner"></div>
+  <p class="loader-text" id="loaderText">Analizando el sitio…</p>
+</div>
+
+<div class="result-panel" id="resultPanel">
+  <div class="result-main" id="resultMain">
+    <div class="verdict-row">
+      <div class="traffic-light" id="trafficLight"></div>
+      <div class="verdict-text">
+        <h2 id="verdictTitle"></h2>
+        <div class="url-display" id="urlDisplay"></div>
+      </div>
+    </div>
+    <p class="verdict-desc" id="verdictDesc"></p>
+    <div class="checks-grid" id="checksGrid"></div>
+
+    <!-- Score explanation (collapsible) -->
+    <details class="score-explanation" id="scoreExplanation">
+      <summary id="explanationToggle">¿Cómo se calcula esta puntuación?</summary>
+      <div class="legend" id="legendContent">
+        <div class="legend-item">
+          <div class="legend-dot green"></div>
+          <div><strong id="legendGreenTitle">🟢 Confiable</strong> — <span id="legendGreenDesc">Sin detecciones en Google Web Risk ni IPQualityScore. Puntuación de riesgo menor a 40 y conexión HTTPS activa.</span></div>
+        </div>
+        <div class="legend-item">
+          <div class="legend-dot yellow"></div>
+          <div><strong id="legendYellowTitle">🟡 Precaución</strong> — <span id="legendYellowDesc">Puntuación de riesgo entre 40 y 74, ausencia de HTTPS, o dominio de creación muy reciente. No necesariamente peligroso, pero merece revisión.</span></div>
+        </div>
+        <div class="legend-item">
+          <div class="legend-dot red"></div>
+          <div><strong id="legendRedTitle">🔴 Peligroso</strong> — <span id="legendRedDesc">Detectado como phishing, malware o sitio engañoso por Google Web Risk o IPQualityScore. Puntuación de riesgo de 75 o más.</span></div>
+        </div>
+        <div class="legend-item">
+          <div class="legend-dot gray"></div>
+          <div><strong id="legendGrayTitle">⚫ Sin información</strong> — <span id="legendGrayDesc">No se encontraron registros en las bases de datos consultadas. Puede ser un dominio muy nuevo o privado.</span></div>
+        </div>
+      </div>
+    </details>
+
+    <div class="attribution-row" id="attributionRow"></div>
+  </div>
+</div>
+
+<div class="error-msg" id="errorMsg"></div>
+
+<div class="examples">
+  <p class="examples-label" id="examplesLabel">Probar con ejemplos</p>
+  <div class="example-pills">
+    <span class="pill" onclick="tryExample('https://google.com')">google.com</span>
+    <span class="pill" onclick="tryExample('https://amazon.com')">amazon.com</span>
+    <span class="pill" onclick="tryExample('http://amaz0n-ofertas.xyz')">amaz0n-ofertas.xyz</span>
+    <span class="pill" onclick="tryExample('https://banco-seguro-login.tk')">banco-seguro-login.tk</span>
+    <span class="pill" onclick="tryExample('https://wikipedia.org')">wikipedia.org</span>
+  </div>
+</div>
+
+<div class="how-section">
+  <p class="how-title" id="howTitle">Señales que analizamos</p>
+  <div class="signals-row">
+    <div class="signal-card">
+      <div class="signal-icon">🛡️</div>
+      <div class="signal-name">Google Web Risk</div>
+      <div class="signal-desc" id="signal1Desc">Base de datos de Google con millones de sitios maliciosos</div>
+    </div>
+    <div class="signal-card">
+      <div class="signal-icon">📊</div>
+      <div class="signal-name">IPQualityScore</div>
+      <div class="signal-desc" id="signal2Desc">Análisis de reputación, phishing y puntuación de riesgo</div>
+    </div>
+    <div class="signal-card">
+      <div class="signal-icon">📅</div>
+      <div class="signal-name" id="signal3Name">Antigüedad</div>
+      <div class="signal-desc" id="signal3Desc">Dominios nuevos son señal de alerta en estafas</div>
+    </div>
+    <div class="signal-card">
+      <div class="signal-icon">🔒</div>
+      <div class="signal-name">HTTPS / SSL</div>
+      <div class="signal-desc" id="signal4Desc">Verificamos el certificado de seguridad del sitio</div>
+    </div>
+  </div>
+</div>
+
+<footer id="footerText">
+  VeriSafe · Advisory provided by Google (Web Risk) · URL analysis by IPQualityScore
+</footer>
+
+<script>
+  // ── Translations ────────────────────────────────────────────────────────────
+  const T = {
+    es: {
+      pageTitle:       'VeriSafe — ¿Es confiable este sitio?',
+      langLabel:       'English',
+      mainTitle:       '¿Puedes confiar en<br>este <span id="titleAccent">sitio web?</span>',
+      subtitle:        'Pega cualquier URL y analiza en segundos si es seguro, sospechoso o peligroso.',
+      placeholder:     'https://ejemplo.com',
+      btnVerify:       'Verificar →',
+      hint:            'Funciona con cualquier URL — incluyendo acortadores y enlaces sospechosos',
+      loading:         'Analizando el sitio…',
+      examplesLabel:   'Probar con ejemplos',
+      howTitle:        'Señales que analizamos',
+      signal1Desc:     'Base de datos de Google con millones de sitios maliciosos',
+      signal2Desc:     'Análisis de reputación, phishing y puntuación de riesgo',
+      signal3Name:     'Antigüedad',
+      signal3Desc:     'Dominios nuevos son señal de alerta en estafas',
+      signal4Desc:     'Verificamos el certificado de seguridad del sitio',
+      explanationToggle: '¿Cómo se calcula esta puntuación?',
+      legendGreenTitle:  '🟢 Confiable',
+      legendGreenDesc:   'Sin detecciones en Google Web Risk ni IPQualityScore. Puntuación de riesgo menor a 40 y conexión HTTPS activa.',
+      legendYellowTitle: '🟡 Precaución',
+      legendYellowDesc:  'Puntuación de riesgo entre 40 y 74, ausencia de HTTPS, o dominio de creación muy reciente. No necesariamente peligroso, pero merece revisión.',
+      legendRedTitle:    '🔴 Peligroso',
+      legendRedDesc:     'Detectado como phishing, malware o sitio engañoso por Google Web Risk o IPQualityScore. Puntuación de riesgo de 75 o más.',
+      legendGrayTitle:   '⚫ Sin información',
+      legendGrayDesc:    'No se encontraron registros en las bases de datos consultadas. Puede ser un dominio muy nuevo o privado.',
+      footer:            'VeriSafe · Advisory provided by Google (Web Risk) · URL analysis by IPQualityScore',
+      errorGeneric:      'No se pudo analizar el sitio. Intenta de nuevo.',
+    },
+    en: {
+      pageTitle:       'VeriSafe — Is this website safe?',
+      langLabel:       'Español',
+      mainTitle:       'Can you trust<br>this <span id="titleAccent">website?</span>',
+      subtitle:        'Paste any URL and find out in seconds if it\'s safe, suspicious, or dangerous.',
+      placeholder:     'https://example.com',
+      btnVerify:       'Check →',
+      hint:            'Works with any URL — including shorteners and suspicious links',
+      loading:         'Analyzing the site…',
+      examplesLabel:   'Try with examples',
+      howTitle:        'What we analyze',
+      signal1Desc:     'Google\'s database of millions of malicious websites',
+      signal2Desc:     'Reputation analysis, phishing detection, and risk scoring',
+      signal3Name:     'Domain Age',
+      signal3Desc:     'Newly registered domains are a common red flag in scams',
+      signal4Desc:     'We verify the site\'s SSL security certificate',
+      explanationToggle: 'How is this score calculated?',
+      legendGreenTitle:  '🟢 Safe',
+      legendGreenDesc:   'No detections from Google Web Risk or IPQualityScore. Risk score below 40 and HTTPS active.',
+      legendYellowTitle: '🟡 Caution',
+      legendYellowDesc:  'Risk score between 40 and 74, missing HTTPS, or a very recently registered domain. Not necessarily dangerous, but worth reviewing.',
+      legendRedTitle:    '🔴 Dangerous',
+      legendRedDesc:     'Flagged as phishing, malware, or a deceptive site by Google Web Risk or IPQualityScore. Risk score of 75 or higher.',
+      legendGrayTitle:   '⚫ No information',
+      legendGrayDesc:    'No records found in the databases consulted. May be a very new or private domain.',
+      footer:            'VeriSafe · Advisory provided by Google (Web Risk) · URL analysis by IPQualityScore',
+      errorGeneric:      'Could not analyze the site. Please try again.',
+    }
+  };
+
+  // ── Detect language ─────────────────────────────────────────────────────────
+  const browserLang = (navigator.language || navigator.userLanguage || 'es').toLowerCase();
+  let currentLang = browserLang.startsWith('en') ? 'en' : 'es';
+
+  function applyLang(lang) {
+    const t = T[lang];
+    document.documentElement.lang = lang;
+    document.title = t.pageTitle;
+    document.getElementById('langLabel').textContent         = t.langLabel;
+    document.getElementById('mainTitle').innerHTML           = t.mainTitle;
+    document.getElementById('mainSubtitle').textContent      = t.subtitle;
+    document.getElementById('urlInput').placeholder          = t.placeholder;
+    document.getElementById('checkBtn').textContent          = t.btnVerify;
+    document.getElementById('hintText').textContent          = t.hint;
+    document.getElementById('loaderText').textContent        = t.loading;
+    document.getElementById('examplesLabel').textContent     = t.examplesLabel;
+    document.getElementById('howTitle').textContent          = t.howTitle;
+    document.getElementById('signal1Desc').textContent       = t.signal1Desc;
+    document.getElementById('signal2Desc').textContent       = t.signal2Desc;
+    document.getElementById('signal3Name').textContent       = t.signal3Name;
+    document.getElementById('signal3Desc').textContent       = t.signal3Desc;
+    document.getElementById('signal4Desc').textContent       = t.signal4Desc;
+    document.getElementById('explanationToggle').textContent = t.explanationToggle;
+    document.getElementById('legendGreenTitle').textContent  = t.legendGreenTitle;
+    document.getElementById('legendGreenDesc').textContent   = t.legendGreenDesc;
+    document.getElementById('legendYellowTitle').textContent = t.legendYellowTitle;
+    document.getElementById('legendYellowDesc').textContent  = t.legendYellowDesc;
+    document.getElementById('legendRedTitle').textContent    = t.legendRedTitle;
+    document.getElementById('legendRedDesc').textContent     = t.legendRedDesc;
+    document.getElementById('legendGrayTitle').textContent   = t.legendGrayTitle;
+    document.getElementById('legendGrayDesc').textContent    = t.legendGrayDesc;
+    document.getElementById('footerText').textContent        = t.footer;
+  }
+
+  function toggleLang() {
+    currentLang = currentLang === 'es' ? 'en' : 'es';
+    applyLang(currentLang);
+  }
+
+  // Apply on load
+  applyLang(currentLang);
+
+  // ── Verdict messages by language ────────────────────────────────────────────
+  const VERDICT_MSG = {
+    es: {
+      green:  { title: 'Sitio Confiable',   desc: 'Este sitio no presenta señales de riesgo. Fue verificado como seguro por Google Web Risk e IPQualityScore. Aun así, verifica siempre que la URL sea exactamente la correcta.' },
+      yellow: { title: 'Precaución',        desc: 'Este sitio tiene características que merecen atención. Puede ser legítimo, pero te recomendamos no ingresar información sensible si tienes dudas.' },
+      red:    { title: 'Sitio Peligroso',   desc: 'Este sitio fue marcado como malicioso o sospechoso. No recomendamos acceder ni ingresar ningún dato personal o financiero.' },
+      gray:   { title: 'Sin Información',   desc: 'No encontramos información suficiente para evaluar este sitio. Puede ser muy nuevo o estar fuera del alcance de las bases de datos consultadas.' },
+    },
+    en: {
+      green:  { title: 'Safe Site',         desc: 'This site shows no signs of risk. It was verified as safe by Google Web Risk and IPQualityScore. Always double-check that the URL is exactly right.' },
+      yellow: { title: 'Caution',           desc: 'This site has some characteristics worth reviewing. It may be legitimate, but we recommend not entering sensitive information if you have doubts.' },
+      red:    { title: 'Dangerous Site',    desc: 'This site was flagged as malicious or suspicious. We do not recommend visiting it or entering any personal or financial information.' },
+      gray:   { title: 'No Information',    desc: 'We couldn\'t find enough information to evaluate this site. It may be very new or outside the scope of the databases consulted.' },
+    }
+  };
+
+  const VERDICT_EMOJI = { green: '✅', yellow: '⚠️', red: '🚨', gray: '❓' };
+
+  // ── Check site ──────────────────────────────────────────────────────────────
+  async function checkSite() {
+    const input = document.getElementById('urlInput').value.trim();
+    if (!input) { document.getElementById('urlInput').focus(); return; }
+
+    document.getElementById('resultPanel').style.display = 'none';
+    document.getElementById('errorMsg').style.display    = 'none';
+    document.getElementById('loader').classList.add('active');
+    document.getElementById('checkBtn').disabled = true;
+
+    try {
+      const response = await fetch('/api/check', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ url: input }),
+      });
+
+      if (!response.ok) {
+        const err = await response.json().catch(() => ({}));
+        throw new Error(err.error || `Error ${response.status}`);
+      }
+
+      const data = await response.json();
+      renderResult(data);
+
+    } catch (err) {
+      const msg = currentLang === 'en'
+        ? (err.message || T.en.errorGeneric)
+        : (err.message || T.es.errorGeneric);
+      showError(msg);
+    } finally {
+      document.getElementById('loader').classList.remove('active');
+      document.getElementById('checkBtn').disabled = false;
+    }
+  }
+
+  function renderResult(data) {
+    const { verdict, domain, checks, attribution } = data;
+    const msg = VERDICT_MSG[currentLang][verdict] ?? VERDICT_MSG[currentLang].gray;
+
+    const main  = document.getElementById('resultMain');
+    const light = document.getElementById('trafficLight');
+    main.className  = 'result-main ' + verdict;
+    light.className = 'traffic-light ' + verdict;
+    light.textContent = VERDICT_EMOJI[verdict] ?? '❓';
+
+    document.getElementById('verdictTitle').textContent = msg.title;
+    document.getElementById('urlDisplay').textContent   = domain;
+    document.getElementById('verdictDesc').textContent  = msg.desc;
+
+    const grid = document.getElementById('checksGrid');
+    grid.innerHTML = (checks ?? []).map(c => `
+      <div class="check-item">
+        <span class="check-icon">${c.icon}</span>
+        <span class="check-label">${c.label}</span>
+        <span class="check-value ${c.cls}">${c.value}</span>
+      </div>`).join('');
+
+    document.getElementById('attributionRow').innerHTML = `
+      <span>🔍 ${attribution?.webRisk ?? ''}</span>
+      <span>📡 ${attribution?.ipqs ?? ''}</span>`;
+
+    document.getElementById('resultPanel').style.display = 'block';
+  }
+
+  function showError(msg) {
+    const el = document.getElementById('errorMsg');
+    el.textContent = '⚠️ ' + msg;
+    el.style.display = 'block';
+  }
+
+  function tryExample(url) {
+    document.getElementById('urlInput').value = url;
+    checkSite();
+  }
+
+  document.getElementById('urlInput').addEventListener('keydown', e => {
+    if (e.key === 'Enter') checkSite();
+  });
+</script>
+</body>
+</html>
